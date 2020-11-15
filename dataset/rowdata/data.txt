@@ -1,0 +1,1052 @@
+----- 
+현상 : Oracle Stored Procedure 호출이 제대로 되지 않음 
+원인 : Stored Procedure에 입출력되는 VARCHAR 변수의 초기화가 되지 않음 
+조치 : Stored Procedure 입력, 출력 VARCHAR 변수의 Length를 반드시 설정 
+(TMS에 문제를 일으키는 것으로 보임) 
+----- 
+현상 : exec TMS_ORACLE7 -A: Failed. 
+원인 : ORACLE에서 DB 사용자에게 GRANT(사용허가권)가 없어서 발생하는 문제임. 
+ORACLE LIB에서 문제가 생길 수도 있다. 
+조치 : ORACLE의 VIEW중에 V$XATRANS$라는 VIEW를 GRANT시켜주면 조치됨. 
+ORACLE의 DBA권한에서 실행가능함. 
+방법: grant all on V$XATRANS$ TO SCRJPCS 
+여기서 SCRJPCS는 DB USER-ID임. 
+----- 
+현상 : DataBase에 연결하지 못한다. 
+원인 : 1.해당 DataBase에 필요한 환경 설정이 잘못되어 있다.(INVAL Error발생) 
+2.환경 파일에 환경 설정이 잘못되어 있다.(INVAL Error) 
+3.DataBase에 권한이 없다. 
+4.DataBase가 기동되지 않았다. 
+조치 : 1.set 명령으로 필요한 환경변수 설정을 확인한다. 
+- Oracle : ORACLE_HOME, ORACLE_SID, ORA_NLS 
+- Informix : INFORMIXDIR, INFORMIXSERVER 
+2.구성파일에 설정되어 있는 ENVFILE을 확인한다. 
+3.해당 User에게 DataBase 권한을 부여한다. 
+- ORACLE : "v$xatrans$"라는 VIEW에 대하여 해당 User에게 권한을 부여한다. 
+- INFORMIN : 해당 DB를 사용할 수 있는 권한을 User에게 부여한다. 
+4.DataBase를 기동하고 Server를 새로 띄운다. 
+----- 
+현상 : LINE/COL ERROR 
+-------- ----------------------------------------------------------------- 
+0/0 PLS-00801: Message 801 not found; product=PLSQL; facility=PCM 
+22/9 PL/SQL: SQL Statement ignored 
+28/17 PLS-00201: identifier 'JWONRYO.JWONMAS' must be declared 
+62/9 PL/SQL: SQL Statement ignored 
+원인 : 현 Database의 Domain 밖에 있는 Table을 Handling하는 경우에 권한이 없는 
+경우에 발생 
+조치 : 접근할 수 있는 권한을 부여한다. 
+----- 
+현상 : LINE/COL ERROR 
+-------- ----------------------------------------------------------------- 
+135/5 PL/SQL: Statement ignored 
+135/9 PLS-00365: 'AVSQLCODE' is an OUT parameter and cannot be read 
+원인 : OUT parameter를 IN parameter로 사용하고 그 값을 읽은 경우. 
+조치 : OUT parameter를 IN OUT parameter로 선언. 
+----- 
+현상 : ORA-0020 
+원인 : 프로세스 수를 프로세스를 초과한 경우. 
+조치 : 프로세스 수를 들여줌. 
+----- 
+현상 : ORA-00023: session references process's private memory; cannot detach session 
+원인 : XA library를 사용하는데 Oracle이 dedicator server로 설치된 경우 발생 
+조치 : XA library를 사용할려면 Oracle을 MTS mode로 설치되어야 한다. 
+----- 
+현상 : 1.ORA-0054 resource busy and acquire with NOWAIT specified 
+2.ORA-0054 WHEN DROP A TABLE(SESSION KILL) 
+원인 : 1.Oracle 사용자가 어떤 Row을 Lock를 했는데, 다른 Oracle 사용자가 NOWAIT문을 이용하여 
+동일한 Row를 Lock를 한 경우에 발생 
+2.TABLE에 LOCK이 걸려 DML 및 DDL 명령 사용시 
+조치 : LOCK을 걸고있는 SESSION들을 KILL 
+----- 
+현상 : ORA-0059 
+원인 : DB_FILES 값에 도달한 경우 
+조치 : init.ora 의 DB_FILES 를 늘려주고 DB 를 Restartup 하면 해결 
+----- 
+현상 : ORA-00210: cannot open control file '/dev/vx/rdsk/oracle/v_ctl1' 
+ORA-07368: sfofi: open error, unable to open database file. 
+원인 : Sequent Symmetry or NUMA-Q platform이 very large file (O/S에서 2GB 
+이상의 file system 지원)을 지원하기 위해 VLFS patch를 적용했거나 
+VLFS를 이미 지원하는 O/S Version일 경우 오라클 master node가 정상적으로 
+startup 되고 나서 다른 node가 startup parallel이 될 때 먼저 startup 된 
+master node가 shared disk 의 모든 오라클 관련 file을 
+none-shared mode로 open 하기 때문에 위의 현상이 발생됨. 
+조치 : 1.PTX/Cluster V1.3.2일 경우 
+* Oracle V7.3.x : O/S상에서 VLFS patch적용하지 않았을 경우는 관계 
+없으나, 이미 적용되었다면 추가적으로 O/S patch FP#23373 
+적용하여야 함 
+2.PTX/Cluster running DYNIX/PTX 4.4.x 일 경우 
+* Oracle V7.3.3 : 현재 fix된 patch는 없으며 다음과 같은 
+workaround 방법으로 해결이 가능함. 
+
+Workaround) 
+--- $ORACLE_HOME/rdbms/lib/ins_rdbms.mk file에 아래의 추가된 부분만 
+삽입하여 오라클 kernel relink 실시 
+(예:make -f ins_rdbms ioracle) 
+oracle: $(ORALIBD) $(CORELIBD) $(NETLIBD) $(KSMS) $(CONFIG) 
+$(PSOLIBLIST) opimai.o @$(ECHO) $(LINK) -o $@ $(LDFLAGS) 
+$(LDFLAGS_ORA) opimai.o $(CONFIG) \ 
+-llkseqora \ ---> 추가된 부분 
+$(LLIBSERVER) $(LLIBORA) $(LLIBKNLOPT) $(LLIBSLAX) 
+$(LLIBPLSQL) \ 
+$(LLIBSICX) $(LLIBSOWSUTL) \ 
+$(LLIBSICX) $(LLIBSOWSUTL) \ 
+
+........... 
+........... 
+
+* Oracle V7.3.4 : 
+Oracle V7.3.4 일 경우는 문제가 없으나 patchset을 적용할 경우 
+V7.3.4.2에서는 V7.3.3과 같은 방법으로 oracle kernel을 relink하면 
+문제가 해결됨. 
+----- 
+현상 : ORA-0376 : file %s cannot be read at this time 
+원인 : DBF가 파손됨. 
+조치 : Check the state of the file. Bring it online 
+----- 
+현상 : ORA-00376: file 29 cannot be read at this time 
+ORA-01110: data file 29: '/db/GICORP_4/axix01.dbf' 
+원인 : datafile의 size가 os에서 허용하는 filesize를 초과해서 발생. 
+조치 : unix의 ulimit filesize를 확인해 보시기 바랍니다. 
+그리고 datafile size 보다 크도록 수정해 주어야 합니다. 
+1.unix ulimit filesize를 증가 시킨다 
+C shell인 경우 
+% limit filesize <number> 
+Bourne 이나 Korn shell 인 경우 
+$ ulimit -f <number> 
+2.archivelog mode인지 확인합니다 
+SVRMGR> select * from v$database; 
+
+NAME CREATED LOG_MODE CHECKPOINT ARCHIVE_CH 
+--------- -------------------- ------------ ---------- ---------- 
+GICORP 05/17/00 13:44:56 ARCHIVELOG 36290290 36284249 
+1 row selected. 
+3.media recovery가 필요한 datafiles를 찾습니다 
+SVRMGR> select * from v$recover_file; 
+
+FILE# ONLINE ERROR CHANGE# TIME 
+---------- ------- ------------------ ---------- -------------------- 
+9 OFFLINE 36287415 12/20/00 23:30:55 
+23 OFFLINE 36289350 12/21/00 08:40:54 
+28 OFFLINE 36287415 12/20/00 23:30:55 
+29 OFFLINE 36287415 12/20/00 23:30:55 
+37 OFFLINE 36287415 12/20/00 23:30:55 
+5 rows selected. 
+4.각각의 datafile에 대해서 다음을 실행해 줍니다 
+SVRMGR> recover datafile '/db/GICORP_4/axix01.dbf'; 
+
+Media recovery complete. 
+
+SVRMGR> alter database datafile '/db/GICORP_4/axix01.dbf' ONLINE; 
+Statement processed. 
+
+5.database를 restart합니다 
+
+SVRMGR> shutdown 
+Database closed. 
+Database dismounted. 
+ORACLE instance shut down. 
+SVRMGR> startup 
+ORACLE instance started. 
+Total System Global Area 54578916 bytes 
+Fixed Size 69348 bytes 
+Variable Size 20783104 bytes 
+Database Buffers 33554432 bytes 
+Redo Buffers 172032 bytes 
+Database mounted. 
+Database opened. 
+SVRMGR> 
+----- 
+현상 : ORA-0312,0313 에러(ONLINE LOG CRASH) 
+원인 : 1.데이타베이스 STARTUP 시 발생 
+조치 : [ ONLINE LOG 가 손상되었을때 DB에 OPERATION 이 없었던 경우는 다음과 같은 절차로 DB을 
+OPEN 할수있다 - 확률 70% ] 
+
+1.CONTROLFILE 생성 
+-. 손상된 online log 는 포함시키지 않는다. 
+-.resetlogs option 으로 생성한다. 
+-.reuse option 은 생략하고 기존 controlfile 은 다른이름으로 move 시킴. 
+
+<V7 에서 CONTROLFILE 생성하는 방법 > 
+sqldba> startup mount 
+sqldba> alter database backup controlfile to trace; 
+
+위와 같이 명령을 입력하면 ORACLE_HOME/rdbms/log 디렉토리에 트레이스 화일이 
+생긴다. 그 트레이스 화일에서 create controlfile 명령부분을 남기고 삭제한다. 
+콘트롤화일 생성 문장 예 - <cnt.sql> : GROUP 1 이 ONLINE LOG 라고 가정 
+--------------------------------------------------------------------- 
+CREATE CONTROLFILE DATABASE "RC722" RESETLOGS NOARCHIVELOG 
+MAXLOGFILES 32 ******** 
+MAXLOGMEMBERS 2 
+MAXDATAFILES 30 
+MAXINSTANCES 8 
+MAXLOGHISTORY 800 
+LOGFILE 
+GROUP 2 '/oracle/oracle/dbs/log2RC722.dbf' SIZE 5M, 
+GROUP 3 '/oracle/oracle/dbs/log3RC722.dbf' SIZE 5M 
+DATAFILE 
+'/oracle/oracle/dbs/systRC722.dbf', 
+'/oracle/oracle/dbs/rbsRC722.dbf', 
+'/oracle/oracle/dbs/toolRC722.dbf', 
+'/oracle/oracle/dbs/usrRC722.dbf', 
+'/oracle/oracle/dbs/tempRC722.dbf', 
+'/oracle/oracle/rcdata.dbf' 
+; 
+2.절차 
+$ sqldba lmode=y 
+SQLDBA> connect internal 
+SQLDBA> shutdown abort 
+SQLDBA> startup nomount 
+statement processed 
+SQLDBA> @cnt 
+SQLDBA> recover database using backup controlfile until cancel; 
+.... 
+... 
+CANCEL (Return) 
+Recovery canceled 
+SQLDBA> alter database open resetlogs; 
+
+: 만일 정상적으로 open 되면 log file 추가 
+SQLDBA> alter database add logfile '?/dbs/log1ORA722.dbf' size 1M; 
+: 정상적으로 open 안되면 RC에 다시 연락 
+----- 
+현상 : ORA-0439 
+원인 : BITMAP INDEXES 생성 시 option 이 인스톨되지 않아서 발생 
+조치 : 반드시 Oracle 8 Enterprise Edition 에서만 사용이 가능하다. 
+Oracle 8i 에서도 동일하게 적용된다. 
+----- 
+현상 : ORA-0600[3339] DATA BLOCK CORRUPTION DETECTION 
+[3339] [arg1] [arg2] [] [] [] [] 
+ORA-1578 : Data block corrupted in file # block # 
+원인 : 1.ORACLE이 직접 버퍼로 데이타를 읽어들일 때 읽은 블럭의 DBA(Data Block Address)가 잘못 
+되었음(INVALID)을 의미 
+2.ORACLE의 문제가 아니라 OS나 HW의 문제인 경우가 많다. 
+----- 
+현상 : ORA-0604: error occurred at recursive SQL level %s 
+원인 : 1.내부적으로 SQL명령이 실행될 때 발생(현재 할당된 익스텐트가 가득 차서 다음 익스텐트를 
+할당 받으려고 할 때 오라클이 다음 익스텐트의 크기와 위치를 결정하기 위하여 SELECT 
+명령을 내리게 되는 것과 같은 경우) 
+2.init.ora 화일의 파라미터 가운데 DC_FREE_EXTENTS 나 ROW_CACHE_ENQUEUES 의 값이 너무 
+작게 설정 
+3.테이블 스페이스가 가득 차거나 Extent 갯수의 최대 허용값을 초과해서 에러가 발생하는 
+경우 ORA-604 에러가 함께 발생 
+조치 : 1.?/dbs/init<SID>.ora 화일에 지정된 open_cursors 의 크기를 알아보는 것이다. 이 값이 
+설정이 안되어 있으면 Default가 50이므로 
+open_cursors=255 
+---------------- 
+2.DC_FREE_EXTENTS 나 ROW_CACHE_ENQUEUES들의 값을 크게 설정 
+3.에러의 원인을 찾기 위해서 init.ora 화일에 다음과 같은 라인을 추가한다. 
+events = "604 trace name errorstack" 
+이렇게 init.ora를 변경하고 DB를 Shutdown 하고 Startup 하면 ORA-0604 에러가 발생하는 
+경우에 자세한 정보를 Trace 화일에 기록해 주므로 이 화일을 검사하여 에러의 원인을 
+찾을 수 있다. 
+----- 
+현상 : ORA-0901 invalid CREATE command 
+원인 : CREATE 뒤에 오는 KeyWord를 식별하지 못한 경우 
+----- 
+현상 : ORA-0902 invalid dadatype 
+원인 : Oracle에서 제공되지 않은 datatype를 사용한 경우 
+----- 
+현상 : ORA-0903 invalid table name 
+원인 : 테이블의 이름이 Oracle object 명명에 대한 필요조건을 만족시키지 못한 경우 
+----- 
+현상 : ORA-0904 열명이 부적합합니다. 
+원인 : 컬럼이 테이블에 존재하지 컬럼을 사용한 경우 
+----- 
+현상 : 083147.gold!stmkdjc.22031: LIBTUX_CAT:522: INFO: Default tpsvrdone() function 
+used 
+ORA-0904 : invalid column name 
+ORA-1003 : no statement parsed 
+원인 : 1.해당 Table에 존재하지 않은 Field를 사용한 경우 
+2.Host Variable 앞에 ":"를 덧붙지지 않은 경우 
+3.해당 Table를 변경하고 관련된 프로그램을 컴파일하지 않은 경우 
+조치 : 1.해당 Table에 Column이 존재하는지 확인 
+2.Host Variable 앞에 ":"를 덧붙인다. 
+3.해당 Table에 관련된 프로그램를 컴파일한다. 
+----- 
+현상 : ORA-0906 missing left parenthesis 
+원인 : 왼쪽 괄호를 찾지 못한 경우에 발생 
+----- 
+현상 : ORA-0907 missing right parenthesis 
+원인 : 오른쪽 괄호를 찾지 못한 경우에 발생 
+----- 
+현상 : ORA-0910 specified legth too long for its datatype 
+원인 : 특정 datatype의 길이가 허용 최대 길이를 초과한 경우 
+----- 
+현상 : ORA-0911 invalid character 
+원인 : Oracle이 뮤효 문자라고 간주하는 것을 만날 때 발생한 에러로 실제문제는 없어진 문자때문 
+----- 
+현상 : ORA-0913 too many value 
+원인 : INSERT문에서 지정된 열의 수보다 열 값의 수가 적으면 발생 
+----- 
+현상 : ORA-0917 missing comma 
+원인 : 1.Comma를 기대하고 있는 SQL문에 comma가 없는 경우 
+2.오른쪽 괄호가 없는 경우에도 발생 
+----- 
+현상 : ORA-0918 column ambiguously defined 
+원인 : 1.둘 이상의 테이블이 한 SQL문에서 참조될 때 발생 
+2.한개 이상의 지정된 테이블에 존재하는 어떤 열이 해당 테이블로 한정받지 못한 경우 
+----- 
+현상 : ORA-0920 invalid relational operator 
+원인 : 관계 연산자를 식별하지 못한 경우 
+----- 
+현상 : ORA-0921 unexpected end of SQL command 
+원인 : 불완전한 SQL문일 경우에 발생 
+----- 
+현상 : ORA-0922 missing or invalid option 
+원인 : option에 임의의 문자가 삽입됨(예:NOT NULL --> NOT_NULL) 
+----- 
+현상 : ORA-0932 inconsistent datatype 
+원인 : 1.어떤 연산자를 어떤 열에 적용시키려고 하는데 그것의 datatype을 연산자와 함께 사용한 경우 
+2.ORA-0997 illegal use of LONG datatype을 복귀시킬 가능성 
+----- 
+현상 : ORA-00933: SQL command not properly ended 
+원인: 
+----- 
+현상 : ORA-0934 group function is not allowed here 
+원인 : SQL문의 WHERE구나 GROUP BY구에서 Group function를 사용한 경우 
+----- 
+현상 : ORA-0936 missing expression 
+원인 : 1.Comma 기술 뒤에 열이나 표현식이 존재하지 않은 경우에 발생 
+2.ORA-0917 missing comma을 복귀시킬 가능성 
+----- 
+현상 : ORA-0937 not a single-group group function 
+원인 : 어떤 SQL문의 선택 list는 어떤 열이 GROUP BY구에서 참조되지 않으면 그열과 Group function를 
+포함할 수 없다. 
+----- 
+현상 : ORA-0938 not enough arguments for function 
+원인 : SQL문이 불충분한 수의 인수로 함수를 호출한 경우에 발생 
+----- 
+현상 : ORA-0942 : table or view does not exist(테이블 또는 뷰가 존재하지 않습니다.) 
+원인 : Oracle은 테이블이나 뷰가 존재하지만 사용자가 테이블이나 뷰를 위한 오브젝트 특권(Grant)을 부여하지 않음 
+조치 : Table 생성 및 권한부여 
+----- 
+현상 : ORA-0947 not enough values 
+원인 : INSERT문에서 지정된 열의 수가 열 값의 수보다 클때 발생 
+----- 
+현상 : ORA-0979 not GROUP BY expression 
+원인 : 어떤 query의 선택 list 안의 한 열이 GROUP BY구에 들어있고 다른 열은 들어있지 않은 경우에 발생 
+----- 
+현상 : ORA-0997 illegal use of LONG datatype 
+원인 : 1.어떤 기능들은 datatype이 LONG인 열에서 수행되지 않는다. 
+2.Long column은 2G까지 지원을 하지만, 
+SQL*Plus에서 insert into 문장을 이용하여 long column에 넣을 문자열을 
+single quote(') 안에 기술 시, 2000 characters가 넘으면 ora-1704 에러가 난다. 
+조치 : 1.TABLE의 COPY는 가능하지 않으므로,LONG COLUMN을 가진 테이블을 COPY하고자 할 때, 
+32KBytes 이하의 size라면 다음의 PL/SQL을 사용하면 가능하다. 
+2.PL/SQL을 이용해야 하며, 경우에 따라 Pro*C, SQL*Loader 등을 이용하여 insert해야만 한다. 
+----- 
+현상 : ORA-1001 Invalid Cursor 
+원인 : Typing 에러, 잘못된 메모리 관리 등의 여러가지 원인에 의해서 발생. 
+조치 : 1.환경에서 조치할 사항 
+- PRECOMPILE 옵션 가운데 MAXOPENCURSORS 를 늘려준다. 
+- init<SID>.ora 화일에서 OPEN_CURSORS 파라미터 값을 늘려준다. 
+- 사용되지 않는 CURSOR는 OPEN 상태로 두지 말고 CLOSE 시켜준다. 
+- 지금은 거의 사용되지 않지만 ORACLE V6 를 사용한다면 PRECOMPILE 옵션 가운데 
+AREASIZE를 512K 정도로 크게 늘려주도록 한다. 그리고 init<SID>.ora 에서 
+CONTEXT_AREA 값도 늘려준다 . 
+- TRACE FILE을 이용하면 문제의 원인을 찾는데 있어 유용할 때가 있다. 
+2.그 밖의 경우 
+- OPEN 되지 않은 CURSOR 에 대해서 작업을 할 때 
+- 존재하지 않는 OBJECT에 대해서 SQL 명령을 실행할 때 
+- CURSOR CACHE로부터 삭제된 경우 
+- CURSOR CACHE로부터 삭제된 또다른 경우 
+PRECOMPILE 옵션 가운데에서 MAXOPENCUSORS 를 늘려주거나 
+HOLD_CURSOR=YES, RELEASE_CURSOR=NO 로 설정 
+- XA/TUXEDO 환경에서 ORA-1001 에러가 발생하는 경우(일부 ORACLE 버젼에서 발생) 
+----- 
+현상 : ORA-1002 FETCH OUT OF SEQUENCE IN PRO*C(stop[<fltmsjaud>]:리스너를 중단합니다. 
+원인 : 1.user가 더이상 유효하지 않은 cursor로부터 fetch를 하려고 하기 때문 
+2.ORA-1403 등과 같이 NO DATA FOUND를 return하는 fetch작업을 수행할때 
+3.SELECT FOR UPDATE를 가진 cursor 의 fetch작업내에 commit이 있는 경우 
+조치 : 3.commit을 fetch loop의 바깥쪽으로 빼거나 select for update문을 사용하지 않아야 한다. 
+----- 
+현상 : ORA-1012 Error( not logged on )가 발생 
+원인 : 1.tpbegin()이 되어 있지 않음 
+2.PC쪽에서 NOTRAN Mode로 Service를 호출 
+조치 : 1.Program을 확인한다. 
+2.flag를 0으로 Setting한다.(TRAN Mode로 Service 호출) 
+3.Service절에 Default에 AUTOTRAN을 "Y"로 설정하고 해당 Service명을 기술한다. 
+----- 
+현상 : ORA-1027 bind variables not allowed for data definition operations 
+원인 : WHERE에 BIND_VAR 를 이용한 CREATE VIEW 는 불가능 
+조치 : 이 경우 EXEC SQL CREATE TABLE IMAGE 
+(EMPNO NUMBER(4) NOT NULL, BITMAP LONG RAW) 
+END-EXEC. 
+이 처럼 create 해야 한다. 
+----- 
+현상 : ORA-1031 insufficient privileges 
+원인 : 사용자가 테이블이나 뷰와 연관된 적어도 한 개의 object 특권을 부여받았지만 SQL문에서 지정된 
+특권을 부여받지 않았을 때 발생 
+1.ORACLE의 SYSTEM 유저에 POWERBUILDER의 BASE TABLE 5개가 생성이 되어 있지 
+않은 경우 
+2.SYSTEM 유저로 접속한 후에도 일반 유저가 접속이 되지 않을 경우 
+조치 : 1.5개 base table(pbcatcol, pbcattbl, pbcatfmt, pbcatvld, pbcatedt)을 
+drop한 다음 system 유저로 접속을 하고, 다시 일반 유저로 접속하는 방법. 
+2.system 유저로 들어가서 5개 base table에 대한 사용 권한을 
+일반 유저에게 주는 방법. 
+$sqlplus system/manager 
+
+SQL>grant all on pbcatcol to public; 
+SQL>grant all on pbcatedt to public; 
+SQL>grant all on pbcatfmt to public; 
+SQL>grant all on pbcattbl to public; 
+SQL>grant all on pbcatvld to public; 
+----- 
+현상 : ORA-1034, "ORACLE not available" 
+ORA-7320, "smsget: shmat error when trying to attach sga." 
+ORA-7429, "smsgsg: shmget() failed to get segment." 
+원인 : ORACLE DBA 사용자만 데이타베이스를 ACESS할수 있고 다른 사용자는 SQL*PLUS 등을 통하여 
+CONNECT를 하려고 할때 다음 에러가 발생 할경우 
+----- 
+현상 : TPFAILED ...................... 
+sqlca.sqlcode ==> -1036 
+ORACLE에서 단독으로 실행하면 문제가 발생되지 않고 OUTPUT을 정확하게 출력하지만 
+TP/M와 함께 실행이 되면 SQL SELECT문을 수행하지 못하고 sqlca.sqlcode ==> -1036의 
+MESSAGE를 뿌리고 실행을 멈춘다. 
+원인 : ORACLE에서 Version간의 Segment 정의부분이 다르기 때문 
+조치 : makefile 혹은 proc.mk file에서 
+sqlcheck=semantic userid=scrjpcs/scrjpcs를 포함시킨다. 
+----- 
+현상 : ORA-1039: insufficient privileges on underlying objects of the view. 
+원인 : SYS user가 아닌 다른 user로 SQL Analyze에 로그인하여 SQL statement에 대한 explain plan 옵션을 사용할 때 다음과 같은 에러가 발생 
+조치 : 1.dictionary table/view들을 validate시켜 놓으려면 dba가 read 권한만 SQL Analyze를 수행하는 user에게 grant하면 충분하다. 
+2.SYS user로서 SQL explaining을 수행하는 것이다. 
+----- 
+현상 : ORA-9992 scumnt: failed to open <FILENAME> 
+ORA-9993 scumnt: failed to lock <FILENAME> 
+ORA-1102 cannot mount database in exclusive mode 
+원인 : 서로 독립적인 두개의 instance가 동일한 database file들을 동기화 (synchronisation)없이 access할 수 있기 때문에 database corruption을 유발시킬 수 있었다. 
+조치 : database의 db_name이 변경되면 각각의 lk<DB_NAME> file을 생성. 
+----- 
+현상 : ORA-01118: cannot add any more database files: limit of XXX exceeded 
+원인 : 데이타 화일의 갯수가 MAXDATAFILES 값에 도달한 경우 발생 
+조치 : MAXDATAFILES를 늘리기 위해서는 DB를 새로 만들어야 하며 그 이후 버젼을 사용중이라면 콘트롤 
+화일을 새로 만들어서 MAXDATAFILES를 늘릴 수 있다 
+----- 
+현상 : ORA-1157 : cannot identify data file 11 - file not found 
+ORA-1110 : data file 11 : '/user1/oracle7/dbs/user2.dbf' 
+원인 : OS 명령으로 DATA FILE 을 삭제한 경우 
+조치 : DATABASE STARTUP시 STARTUP MOUNT 단계까지 실행한 후, 문제의 데이타 화일을 OFFLINE 시킨다. 
+데이타베이스를 오픈한다. 단 데이타베이스 오픈이 정상적으로 수행되면 문제가 발생한 데이타 
+화일을 포함하고 있는 TABLESPACE를 DROP하지 않을 경우에는 DATABASE STARTUP시 항상 데이타 
+화일의 오픈 단계에서 에러가 발생된다. 따라서, 문제의 데이타 화일의 OFFLINE과 TABLESPACE의 
+DROP전에 반드시 해당 TABLESPACE를 사용하고 있는 USER의 데이타 백업을 수행해야 한다. 
+
+데이타 화일의 OFFLINE과 관련된 명령은 다음과 같다. 
+SQLDBA를 COMMAND LINE MODE로 기동시킨다. 
+
+$ sqldba lmode=y 
+SQLDBA> CONNECT INTERNAL; 
+SQLDBA> STARTUP MOUNT; 
+ORACLE instance started. 
+Database mounted. 
+SQLDBA> ALTER DATABASE DATAFILE '/user1/oracle7/dbs/user2.dbf' 
+OFFLINE DROP; 
+Statement processed. 
+SQLDBA> ALTER DATABASE OPEN; 
+Statement processed. 
+SQLDBA> DROP TABLESPACE tablespace_name INCLUDING CONTENTS; 
+Statement 
+----- 
+현상 : ORA-01237 cannot extend datafile %s 
+원인 : O/S 레벨에서는 file size를 1TB 이상 지원한다고 하는데, oracle datafile을 2G 이상으로 resize하려고 한다거나 tablespace에 datafile을 추가하거나 생성할 때, 2G 이상 주면 file size limit에 걸리는 현상 발생 
+조치 : 화일 시스템에서 large file을 사용하기 위해서는 화일 시스템을 'largefiles' option으로 mount해야 한다. 
+----- 
+현상 : ORA-1400 primary key or mandatory(NOT NULL) column is missing or NULL during insert 
+원인 : 어떤 필수적인 열을 위한 값을 공급하지 않은 경우 
+----- 
+현상 : ORA-1401 inserted value too large for column(열에 입력한 값이 너무 큽니다.) 
+원인 : 문자열을 할당하고자 할때 길이가 최대치를 초과한 경우 
+----- 
+현상 : ORA-1403 no dada found 
+원인 : 사실상 전혀 Error가 아니다. 
+----- 
+현상 : ORA-1405 fetched column value is NULL 
+원인 : ERROR 가 아니고 WARNING MESSAGE 이다. 
+조치 : dbms=v6 를 PRECOMPILER OPTION 에 추가해준다. dbms=v6 로 SETTING 할경우는 HOST 변수에 
+NULL 이 RETURN 되더라도 sqlca.sqlcode 는 0 이 된다. 
+----- 
+현상 : ORA-1407 cannot update mandatory(NOT NULL) column to NULL 
+원인 : 필수적인 열의 값을 NULL에 설정한 경우에 발생 
+----- 
+현상 : ORA-1408 such column list already indexed 
+원인 : 이미 동일한 열 List에 기초한 Index를 갖고 있는 Table에서 Index를 작성하고자 하는 경우에 발생 
+----- 
+현상 : ORA-1410 invalid ROWID 
+원인 : 1.적절한 Format으로 ROWID를 상술하지 않은 경우에 발생 
+2.지정된 ROWID가 존재하지 않은 경우에 발생 
+----- 
+현상 : ORA-01438: 지정한 정도를 초과한 값이 열에 지정되었습니다. 
+원인 : 지정한 자릿수를 초과한 Column이 존재한 경우에 발생 
+----- 
+현상 : ORA-01422: exact fetch returns more than requested number of rows 
+ORA-06512: at "SYS.STANDARD", line 648 
+ORA-06512: at "BETH.BETH", line 6 
+ORA-06512: at line 1 
+원인 : SELECT 문에서 조건에 해당하는 row가 2건 이상 
+return되었을 때 발생하는 TOO_MANY_ROWS 에러와 동일한 에러이다. 
+조치 : 확인한 결과 DUAL table에서는 비록 2개의 ROWID를 볼 수는 없지만, 
+실제 2개의 row가 DUAL table에 존재하는 상황이다. 
+따라서, 다음 명령을 이용하여 여분의 필요없는 row를 delete해야 한다. 
+----- 
+현상 : ORA-1449 column contains NULL values; cannot alter to NOT NULL 
+원인 : 어떤 열을 필수적인 것으로 변경하고자 하나 적어도 테이블 내의 한 행이 그 열을 위한 NULL값을 
+가질 때 발생 
+----- 
+현상 : ORA-1452 cannot CREATE UNIQUE INDEX; duplicate keys found 
+원인 : 값이 독특하지 않은 일련의 열에서 독특한 인덱스를 작성한 경우에 발생 
+----- 
+현상 : ORA-1453 SET TRANSACTION must be first statement of transaction 
+원인 : 모종의 다른 SQL문 이후에 SET TRANSACTION문을 기동할 때 발생 
+----- 
+현상 : ORA-01458 Invalid length inside variable character string 
+원인 : DB Table field의 길이와 Host Variable의 길이 차이가 있을때 발생한다. 
+그러므로 Table field의 길이와 Host Variable의 길이를 비교해 본다. 혹은 Stored 
+Procedure의 Input Parameter가 Null 값으로 넘겨질 때도 발생한다. 
+조치 : DB Table field와 Host Variable의 길이를 조정한다. 
+Stored Procedure의 Input Parameter에 Null값을 0의 값을 채워서 넘긴다. 
+주의 : Stored Procedure에서 Cursor를 사용할 때 
+FOR ... LOOP를 사용할 때 주의를 해야한다. 
+FOR i IN 1..batch_size LOOP 
+FETCH get_emp 
+INTO 
+emp_name( i ) 
+,job( i ) 
+,sql( i ) 
+; 
+
+IF get_emp%NOTFOUND THEN -- if no row was found 
+CLOSE get_emp; 
+done_fetch := 100; -- indicate all none 
+EXIT; 
+ELSE 
+done_fetch := 900; -- indicate all none 
+found := found + 1; -- count row 
+END IF; 
+END LOOP; 
+에서 Fetch Array의 0번째에 Data를 저장할 때 문제가 생긴다. 
+그러므로, emp_name( 0 )이라고 하면 Error를 발생한다. 
+----- 
+현상 : ORA-01476: divisor is equal to zero 
+원인 : Zero값으로 임의의 수를 나누었을때 발생 
+----- 
+현상 : ORA-01480: trailing null missing from STR bind value 
+원인 : 1.해당 Column의 Size 보다 더 큰 값이 들어온 경우에 발생 
+2.Character Type(CHAR, VARCHAR)의 Host variable인 경우 변수 선언시 Table의 Column size 만큼의 변수길이를 선언한 경우 발생 
+조치 : 1.해당 Column의 Size와 해당값을 확인 
+2.Character Type(CHAR, VARCHAR)의 Host variable인 경우 변수 선언시 Table의 Column size에 1를 더해 주어야 한다. 
+(데이터의 마지막에 NULL 문자를 포함해야 하기 때문에) 
+----- 
+현상 : ORA-1481 invalid number format model 
+원인 : 어떤 숫자 Format Model이 미정의 문자를 포함한 경우에 발생 
+----- 
+현상 : ORA-1547 : Failed to allocate extent of size 'num' in tablespace 'TOOLS 
+원인 : TABLESPACE가 에러에 명시된 ORACLE block 수 만큼의 요청된 EXTENT를 할당할 충분한 FREE 
+SPACE를 갖고있지 못할 경우에 발생 
+조치 : 1.해당 TABLESPACE내에서 연속된 영역의 ORACLE block 할당할 수 있도록 데이타 화일을 추가 
+2.TABLE의 STORAGE PARAMETER에서 INITIAL EXTENT, NEXT EXTENT의 크기를 조정하여 TABLE을 
+재구축 
+3.다음의 방법으로는 관련 TABLESPACE를 재구성하는 것 
+----- 
+현상 : ORA-1552 (CANNOT USE SYSTEM ROLLBACK SEGMENT FOR NON-SYSTEM TABLESPACE '%S') 
+원인 : SYSTEM TABLESPACE 이외의 TABLESPACE를 포함한 OPERATION을 위하여 SYSTEM TABLESPACE의 
+ROLLBACK SEGMENT를 사용할 경우에 발생 
+조치 : SYSTEM TABLESPACE에 하나 이상의 ROLLBACK SEGMENT를 추가한 다음, 데이타베이스 오브젝트를 
+생성 
+----- 
+현상 : ORA-1555 Snapshot Too Old 
+원인 : 1.데이타의 변경이 심한 데이타베이스에서 롤백 세그먼트의 갯수와 크기가 작을 경우에 발생 
+2.롤백 세그먼트가 손상되어 읽을 수 없게 된 경우 
+3.Fetch Across Commit(테이블에 대하여 Query가 커서를 열고 루프 내에서 데이타를 Fetch 
+하고 변경하고 커밋하는 과정에서 발생) 
+4.Delayed Block Clean Out(데이타 블럭이 변경되고 커밋되면 오라클은 롤백세그먼트 헤더에 
+그 트랜잭션이 커밋되었다고 기록하지만 데이타 블럭을 바로 변경하지는 않는다 (Fast 
+Commit). 그리고 다음 트랜잭션이 변경된 블럭을 요구할 때야 비로소 변경 시키는것 
+조치 : 1.커서가 Open된 상태에서는 커밋을 자주하지 않고 롤백 세그먼트 크기를 키워 나가도록 
+2.커서를 사용하기 전에 Full Table Scan을 해주면 예방이 가능 
+----- 
+현상 : ORA-1562(Failed to extend rollback segment(id = %s)) 
+원인 : 1.사용중인 ACTIVE 상태의 ROLLBACK SEGMENT가 다음 EXTENT를 할당하고자 할 경우 
+2.해당 ROLLBACK SEGMENT에 대하여 발생 가능한 최대 EXTENT 수를 초과할때 발생 
+조치 : ROLLBACK SEGMENT의 재생성 
+----- 
+현상 : ORA-01578: ORACLE data block corrupted (file # 6, block # 3) 
+ORA-01110: data file 6: '/tmp/ts_corrupt.dbf' 
+원인 : 
+조치 : 해당 objects를 drop하고 recreate하여 처리 
+----- 
+현상 : ORA-01578 
+원인 : data block 에 corruption 이 생긴 경우에 발생. 
+조치 : 1.최선의 해결책은 backup 받아둔 file 을 restore 한 후 recover 작업을 하는 것이다. 
+2.backup datafile 을 restore 하고 recover 하지 않을 것이라면 우선, 어떤 object 에서 corruption 이 발생하였는지 확인해야 한다. 
+3.해당 segment 가 non-data dictionary index 라면, 해당 index 를 drop 한 후 재생성한다. 
+4.해당 segment 가 table 이라면, corruption 이 발생한 block 의 data 는 소실된 것이다. 
+5.만약 해당 table 에 대한 최근의 export dump file 이 존재한다면, 해당 table 을 drop 한 후 import 함으로써 복구할 수 있다. 
+6.corruption 이 발생한 non-clustered table 에서 corrupted block 을 
+access 하지 않고 나머지 data 들을 select 할 수 있도록 ROWID 를 이용할 
+수 있다. 
+7.만약 data dictionary 에 속하는 table, index 또는 rollback segment에 
+corrupted block 이 발생하였다면 Oracle Support 의 지원을 받는다. 
+8.일반적으로, ORA-1578 은 hardware 의 문제때문에 유발된다. 하지만 만약에 
+ORA-600[3374] 가 발생한다면 memory 상에서 corruption 이 발생한 
+경우이다. 이 경우 database 를 restartup 하면 문제가 해결될 수 있다. 
+----- 
+현상 : ORA-1591(Pending Transaction의 처리) 
+원인 : 분산 트랜잭션의 경우 2 phase commit수행 단계중에 fail이 발생하게 되면 관여된 일부 database에서는 rollback 혹은 commit이 되고, 일부는 distributed lock이 걸린 상태로 계속 지속될 수 있다. 
+이렇게 pending된 transaction에 대해서는 기본적으로 Oracle의 background process인 RECO process가 자동으로 정리하여 주나, 경우에 따라 자동으로 정리가 되지 못하는 상황이 발생 
+조치 : STEP 1: alert.log file을 check한다. 
+STEP 2: network 환경을 확인한다. 
+STEP 3: RECO process가 떠 있는지 확인한다. 
+STEP 4: DBA_2PC_PENDING을 조회해 본다. 
+STEP 5: DBA_2PC_NEIGHBORS view를 조회해 본다. 
+STEP 6: commit point site를 확인한다. 
+STEP 7: DBA_2PC_PENDING의 MIXED column을 확인한다. 
+STEP 8: DBA_2PC_PENDING의 STATE column의 값을 확인한다. 
+STEP 9: 불일치 사항을 파악하고 DBA_2PC_PENDING을 정리한다. 
+
+2PC에서 1st phase commit(xa_prepare)이 정상적으로 종료되면 Oracle의 dba_pending_transaction에 해당 
+Transaction에 대한 정보가 나타난다. 
+
+formatid 40 
+globalid 636861656A750000000000000000000000000000000000 
+5B5103A6BEC9900000DE8 
+branchid 0000006600000065 
+
+이 상태에서 일정한 시간 내에 2nd phase commit(xa_commit)에 끝나지 않으면 dba_2pc_pending에도 이 
+Transaction이 나타난다. 
+
+local_tran_id 4.24.3026 
+global_tran_id 40.636861656A750000000000000000000000000000000000 
+5B5103A6BEC9900000DE8 
+state prepared 
+mixed no 
+advice 
+tran_comment 
+fail_time 
+force_time 
+retry_time 
+os_user jun 
+os_termina 
+host chaeju 
+db_user 
+commit# 5332231 
+
+위에서 "일정한 시간"이란 용어를 사용했는데 Oracle의 문서에는 이에 관한 정확한 언급은 없다. 
+다만, 다른 Transaction에서 해당 레코드를 참조하려고 할 때 이미 lock이 걸려 있으므로 대기하는 
+시간에 대해서는 init.ora에서 지정하는 distributed_lock_timeout에 대해서만 언급하고 있다. 그런데 
+oracle 8.1.7에서는 distributed_lock_timeout을 설정하면 obsolete로 나온다. 
+
+이 시간 동안에 해당 레코드에 대한 lock이 풀리지 않으면 아래와 같은 에러를 만난다. 
+
+ORA-02049: time-out: distributed transaction waiting for lock 
+
+위의 에러가 발생한 이후에 이 레코드를 참조하려고 하면 1591 에러가 나타난다. 
+
+ORA-01591: lock held by in-doubt distributed transaction '4.24.3026' 
+
+보는 것처럼 ORA-01591 에러 메시지에는 local_tran_id가 있다. 이를 이용하여 dba_2pc_pending에서 
+global_tran_id를 조회하고, 이 데이터는 dba_pending_transaction의 formatid와 globalid로 이루어져 
+있으므로 이를 이용하여 dba_pending_transaction에서 branchid도 얻을 수 있다. 
+
+이들로 부타 아래와 같이 XID를 얻을 수 있다. 
+
+xid.formatid = dba_pending_transactions.formatid 
+xid.gtrid_length = len(dba_pending_transactions.globalid) 
+xid.bqual_length = len(dba_pending_transactions.branchid) 
+xid.data = dba_pending_transactions.globalid + dba_pending_transactions.branchid 
+
+여기까지는 Oracle로 부터 XID를 얻는 과정이다. 
+
+tpconvert(str, (char *)&xid, TPTOSTRING | TPCONVXID)를 이용하여 XID의 string 표현을 얻을 수 있고 
+이값을 이용하여 .TMIB 서비스를 호출하면 아래와 같은 정보를 얻을 수 있다. 
+
+TA_ERROR 0 
+TA_MORE 0 
+TA_OCCURS 1 
+TA_GRPCOUNT 2 
+TA_GRPINDEX 0 
+TA_GRPNO 102 
+TA_GRPNO 101 
+TA_TIMEOUT 9 
+TA_COORDGRPNO 102 
+TA_CLASS T_TRANSACTION 
+TA_STATE READY 
+TA_COORDLMID SITE1 
+TA_GSTATE READY 
+TA_GSTATE READY 
+TA_TPTRANID 0x0 0x3a6bec99 0xde8 0x28 0x0 0x0 
+TA_XID 0x0 0x3a6bec99 0xde8 0x28 0x66 
+TA_COORDSRVGRP APPGRP2 
+TA_LMID SITE1 
+TA_SRVGRP APPGRP2 
+TA_SRVGRP APPGRP1 
+
+위의 경우에는 아직 Tuxedo가 transaction에 대한 정보를 가지고 있기 때문에 별다른 조치가 필요없다. 
+하지만, Oracle의 dba_2pc_pending에는 있는데 Tuxedo에서 해당 Transaction에 대한 정보를 가지고 
+있지 않은 경우에는 Oracle에서 rollback force나 commit force를 이용하여 pending transaction을 
+정리해 주어야만 lock이 풀린다. 
+----- 
+현상 : ORA-1628, 00000, "max # extents (%s) reached for rollback segment %s" 
+ORA-1630, 00000, "max # extents (%s) reached in temp segment in tablespace %s" 
+ORA-1631, 00000, "max # extents (%s) reached in table %s.%s" 
+ORA-1632, 00000, "max # extents (%s) reached in index %s.%s" 
+원인 : 오브젝트의 익스텐트가 MAX # 에 도달 했기 때문에 발생되며 오브젝트의 MAXEXTENTS는 
+STORAGE 의 MAXEXTENTS 파라미터에 의해 결정 
+조치 : ALTER TABLE .. STORAGE (MAXEXTENTS n)를 사용하여 최대 MAXEXTENTS 값보다 작은 수로 
+MAXEXTENTS를 늘려준다. 
+----- 
+현상 : ORA-1652, 00000, "unable to extend temp segment by 6144 in tablespace "VESSEL" 
+원인 : 테이블이나 인덱스 등을 만들 때 자신의 TEMP TABLESPACE 가 아닌 곳에서 ORA-1652(temp 
+tablespace가 부족함) 에러가 발생 
+조치 : 에러메시지에서 보여주는 대로 해당 테이블스페이스에 Temporary Segment 가 생성될 만한 
+연속된 공간을 마련하여 주는 것 
+----- 
+현상 : ORA-1653 
+원인 : 특정 tablespace 에 space 가 부족해서 table의 extent가 일어나지 못해서 발생 
+조치 : user의 default tablespace 를 변환한 후, 이 default tablespace 
+안에 create table을 다시 한 후 sql*loader 를 실행한다 
+----- 
+현상 : ORA-1654 ERROR ON INDEX SEGMENT 
+원인 : tablespace가 적어 extent 영역을 할당할 수 없어서 발생 
+조치 : datafile을 추가 시 이전값 이상의 사이즈를 추가해야 함. 
+----- 
+현상 : ORA-1722 invalid number 
+원인 : 수치값이 불법일 경우 
+----- 
+현상 : ORA-1747 열명을 올바르게 지정해 주십시요. 
+원인 : 열명이 다른 경우(SQL문장 기술시 첫번째 열명 앞에 Comma를 삽입한 경우) 
+----- 
+현상 : tb_ra315 insert error ORA-02291: integrity constraint (SCRJAPPR.A315_E007_FK) 
+violated - parent .... 
+원인 : Table과 관련된 Reference 관계로 parent table의 data가 없는 관계로 data 입력불가 
+조치 : Reference 관계를 끈어주든지 아니면 관계된 Table에 Data를 모두 입력하는 방법. 
+----- 
+현상 : ORA-02303: cannot drop or replace a type with type or table dependents 
+원인 : Type이나 table의 dependency가 있는 type을 drop하거나 replace하고자 할 때 발생. 
+조치 : SQL Reference guide에 의하면 DROP TYPE FORCE 옵션은 recommend하지 않는다. 
+왜냐하면 이 옵션을 쓰게 되면 복구가 불가능하고 dependency가 있던 table들은 
+access하지 못하는 결과를 초래한다. 
+----- 
+현상 : ORA-03113: end-of-file on communication channel 
+원인 : 1.이전에 작동했던 해당 instance의 shared memory segment들이 아직 system에 남아있어서 발생. 
+2.서버의 Oracle 쉐도 프로세스가 예기치 않게 종료된 경우 발생. 
+3.SQL*NET 드라이버가 Unix의 ORACLE 실행 파일과 연결되지 않아 발생한 경우. 
+4.서버쪽의 기계 손상이나 네트워크 고장인 경우. 
+5.네트워크에서 두 서버가 같은 노드 이름을 가질 때에도 이 오류가 발생. 
+6.모든 원인은 결국 클라이언트가 서버로부터 어떤 정보를 읽으러 갔다가 거기서 더 이상 연결이 없음을 발견했다는 뜻임. 
+7.Oracle XA를 사용하는 AP 서버 혹은 TMS 서버가 떠 있는 상황에서 연결된 DB를 재기동 시키거나 혹은 다른 문제로 인해서 데이터베이스와의 연결이 끊어진 경우에 발생 
+조치 : shared memory를 check하여 oracle이 소유하고 있는 shared memory segment를 삭제하여 문제를 해결. 
+자동으로 재접속을 하기 위해서는 TUXWA4ORACLE(WorkAround For Oracle) 환경변수를 1로 설정하면 해당 서버가 오라클에 접근하여 3113 에러가 발생하는 순간에 재접속이 이루어진다. 
+(XA 서버에만 해당되며 Non-XA 서버의 경우는 사용자 coding에 의해서 동일한 기능을 구현할 수 있다.) 
+----- 
+현상 : ORA-3114 Error( not connected to ORACLE )가 발생 
+원인 : ORACLE이 Shutdown 되었다. 
+조치 : ORACLE이 떠 있는지 확인하고, Server를 새로 기동한다. 
+----- 
+현상 : ORA-3121 
+원인 : SQL*NET V2를 통해 연결하려 할 때 연결 스트링에 'tns:'net접두어를 사용하지 않은 경우 
+조치 : 구버전인 SQL*NET V1의 net 접두어 (SQL*Net TCP/IP에 대한 "t:"등)를 사용하지 않도록 주의 
+하십시요. 
+----- 
+현상 : ORA-4068 existing state of packages%s%s%s has been discarded 
+원인 : 응용프로그램 실행 중에 사용하고 있는 Stored Procedure를 Compile하는 경우에 발생 
+조치 : 응용프로그램을 재기동시킨다. 
+----- 
+현상 : ORA-4091 table name is mutating, trigger/function may not see it 
+원인 : DataBase Trigger가 Transaction 내에서 변경된 테이블에 대하여 Query를 기동할 때 발생 
+조치 : 1.PL/SQL table을 생성한다. 
+2.BEFORE STATEMENT trigger를 생성한다. 
+3.AFTER ROW trigger를 생성한다. 
+4.AFTER STATEMENT trigger를 생성한다. 
+5.data insert 및 확인 
+----- 
+현상 : ORA-4092 cannot COMMIT or ROLLBACK in a trigger 
+원인 : 1.Trigger가 COMMIT or ROLLBACK을 실행하고자 할 때 발생 
+2.Trigger가 내장 프로시저, COMMIT나 ROLLBACK될 함수, 패캐지 서브프로그램을 호출한 경우 
+----- 
+현상 : ORA-6106,ORA-6120 NETTCP : socket creation failure 
+원인 : WIN V1.X용 SQL*NET TCP/IP는 SQLTCP.DLL과 SQLTCP1.DLL들은 ORACLE용 연결 스트링이 TCP/IP 
+프로토콜 스트링으로 변환되면 OCI DLL에 의해 작업 진행중에 올려집니다. ORACLE INTERFACE 
+DLL은 SQLTCP.DLL을 먼저 올리려고 합니다. 이것이 실패하면 DOS TSR 버전의 드라이버를 
+찾습니다. 두 가지 모두 실패하면 ORA-3121 메세지가 나옵니다. 
+----- 
+현상 : ORA-6108 
+원인 : 1.부적절한 machine, 또는 machine는 맞지만 틀린 포트를 지정할 때 발생 
+2.TCP/IP 레이어는 모든 연결 요구를 Listener의 소켓 큐에 넣을 수 없을 경우 발생 
+3.네트워크가 아주 혼잡하고 호스트에 도달하려는 중에 시간이 종료할 경우 
+조치 : 1.클라이언트에서 호스트 Machine에 대해 ping을 실행하십시요. 대부분의 PC TCP/IP업체는 
+"ping" 유틸리티를 제공합니다. 클라이언트 Machine에서 다음을 입력하십시요 
+ping <host IP address> 
+이 방법으로 잘 되지 않으면 아마도 호스트 machine이 down된 것입니다. IP 주소를 사용 
+하여 호스트에 대해 ping을 성공적으로 실행할 수 없으면, 서버의 호스트 이름을 사용하여 
+ping을 실행해 보십시요. 
+ping <hostname> 
+호스트 이름을 사용하여 ping을 실할 수 없으면 TCP/IP 구성을 점검하십시요. 호스트 이름 
+을 가지고 ping을 실행할 수 없으면, 연결 스트링에 호스트 이름을 사용하여 SQL*NET와 
+연결할 수 없습니다. 
+2.SQL*NET TCP/IP Listener가 해당 서버에서 실행중인지 점검하십시요. 서버의 UNIX프롬프트 
+에서 다음을 입력하면 됩니다. 
+ps -al|grep "orasrv" 
+이 때 최소한 한 행이 표시되어야 합니다. 그렇지 않으면 UNIX 프롬프트에서 "orasrv" 
+또는 "tcpctl start"를 입력하여 수화자를 띄우십시요. SYSADMIN 특권을 가지고 해당 기계 
+에 로그인해야 합니다. 
+3.서버쪽에서 루프백을 할 수 있는 지, 다시 말해서 PC 클라이언트에서 지정한 것과 같은 
+연결 스트링을 사용하여 서버의 툴을 연결할 수 있는지 점검하십시요. 예를 들면, 서버의 
+SQLPLUS 또는 SQLDBA를 호출하고 서버의 SQLPLUS 또는 SQLDBA 프롬프트에서 다음을 입력 
+하십시요. 
+CONNECT USERNAME/PASSWORD@t:<servername>/<portnum>:<sid> 
+4.루프백 성사되면 호스트 서버의 ORASRV 포트 번호를 확인하십시요. (대부분의 기계에서 
+SERVICE 파일은 /etc 디렉토리에 있습니다.) 또한 "tcpctl" 유틸리티를 사용하면 대부분의 
+UNIX 기계에서 ORACLE Listener를 시작하거나 멈출 수 있습니다. "tcpctl stop"로 Listener 
+를 종료하십시요. "tcpctl start"으로 다시 시작하십시요. 이때 시작 포트에 관한 정보가 
+표시됩니다. 
+5.이것이 성공하면 포트를 지정하지 말고 포트를 연결해 보십시요. 
+t:<servername>:<sid> 
+연결되지 않으면 클라이언트에서 SERVICE 파일을 정확하게 설정하 않았기 때문입니다. 
+a)WINDOWS\WIN.INI를 점검하여 [Oracle] 부분의 ORA_CONFIG 매개 변수가 어떤 구성 파일을 
+지시하고 는지 알아보십시요. 이폴트는 다음과 같습니다. 
+[Oracle] 
+ORA_CONFIG=C:\WINDOWS\ORACLE.INI 
+b)ORACLE.INI 파일을 보고 TCP_SERVICES_FILE 매개변수가 설정되었고 SERVICES 파일을 지시 
+하고 있는 지 확인하십시요. 
+c)SERVICES 파일을 보고 다음 항목이 있는 지 확인하십시요. 
+orasrv 1525/tcp oracle 
+6.또한 서버가 SQL*NET V2가 아니라 SQL*NET V1을 실행중인지 확인하십시요. 
+7.결 스트링의 재시도 매개변수를 증가시켜 보십시요. 재시도 횟수를 지정하는 구문은 다음과 
+같습니다. 
+t:host[/service]:SID[,buffer-size][:conn-retries] 
+conn-retries의 디폴트는 1입니다. 
+8.VAX에 연결할 경우에는 VAX config.ora 파일에 다음행이 있는지 확인하십시요. 
+SQLNET USERNAMEMAP*=* 
+이것은 VAX account가 없는 PC가 디폴트 사용자 account을 사용하여 연결 할 수 있게 해 
+줍니다. 
+----- 
+현상 : ORA-6110 "NETTCP: message send failure" 
+원인 : Windows 클라이언트의 TCP/IP사이에 버퍼 조정문제가 있을 때 발생 
+조치 : 1.버퍼 크기를 연결 스트링에 포함시켜 일정한 크기로 고정하는 것 
+t:<servername>:<sid>,<buffersize> 
+연결 스트링에 버퍼 크기를 포함시킨 후에도 여전히 ORA-6110이 발생하면 더 작은 값을 
+사용해 보십시요. WINDOWS용 SQL*NET TCP/IP의 기본 버퍼 크기는 4096입니다. 이것을 
+1024로 사용하면 대개 ORA-6110에러가 없어집니다. 
+2.서버쪽 
+1)서버에서 루프백을 수행할 수 있습니까? 다시 말해서 PC 클라이언트에서 지정한 것과 
+같은 연결 스트링을 사용하여 서버의 툴을 연결할 수 있습니까? 예를 들어 서버에서 
+SQLPLUS 또는 SQLDBA를 호출하고 에러가 없어집니다. 
+CONNECT USERNAME/PASSWORD@t:<servername><portnum>:<sid> 
+루프백을 실행하면 실제 문제를 더 잘 보여주는 다른 에러가 나타나는 수도 있습니다. 
+2)ORA-6110은 Oracle실행 파일에 사용 권한이 정확하게 설정 되어 있지 않으면 Unix 서버에 
+연결할 때도 발생할 수 있습니다. Oracle과 orasrv의 사용권한은 다음과 같이 설정되어야 
+합니다. 
+>chmod 6755 oracle 
+>chmod 6755 orasrv 
+이 때, Permission는 다음과 같이 설정됩니다. 
+-rwsr-xr-x 1 oracle dba ...size ...date oracle 
+-rwsr-xr-x 1 root dba ...size ...date oracle 
+
+3)ORA-6110과 틀린 네트워크 주소 
+TCP/IP 네트워크에서 중복 IP주소가 살아 있으면 ORA6110이 발생할 수 있습니다. 네트 
+워크의 모든 IP주소가 고유의 것인지 확인하십시요. 
+----- 
+현상 : ORA-6122 "NETTCP: setup failure 
+원인 : SQL*NET 구성이 적절하게 설정되지 않은 상태에서 WINDOWS용 SQL*NET TCP/IP를 가지고 연결 
+하려 할 때 발생 
+조치 : 1.WINDOWS\WIN.INI를 조사해 보십시요. ORA_CONFIG 매개 변수를 정의하는 ORACLE 부분이 
+있어야 합니다 
+[Oracle] 
+ORA_CONFIG=C:\WINDOWS\ORACLE.INI 
+2.ORACLE.INI(또는 ORA_CONFIG 매개변수가 지시하는 파일)을 보십시요. ORACLE_HOME이 
+WINDOWS용 SQL*NET TCP/IP와 다른 Oracle Windows 응용 프로그램이 설 된 디렉토리를 
+지시하는 지 확인하십시요. 디폴트는 다음과 같습니다. 
+ORACLE_HOME=\ORAWIN 
+3.또한 ORACLE.INI에 TCP_VENDOR를 정확하게 설정했는지도 확인하십시요. 
+4.경로에 C:\ORAWIN\BIN(또한 ORACLE_HOME을 설정한 BIN 디렉토리)이 있는지 확인하십시요. 
+DOS프롬프트에서 SET을 입력하고 <return>을 누르면 됩니다. 이명령은 경로를 보여줍니다. 
+5.ORAWIN\BIN 디렉토리에 SQLTCP.DLL과 SQLTCP1.DLL이 모두 있는지 확인하십시요. 
+6.경로의 다른 어떤 디렉토리에도 SQLTCP.DLL이 없는 것을 확인하십시요. 
+7.ORAWIN\BIN 디렉토리와 경로의 다른 디렉토리에 MSOCKLIB.DLL이 있는 지 확인하십시요. 
+또한 파일의 두 복사본을 가지고 있지 않도록 하십시요. 복사본이 둘일 경우, 이전 복사본 
+의 이름을 바 면 문제가 줄어들 수 있습니다. 
+8.WINDOWS 디렉토리에 VSL.INI 파일이 있는지 확인하십시요. 만약 없으면 ORACLE INSTALLER 
+를 통해 SQL*NET를 다시 입력하십시요. 
+----- 
+현상 : ORA-6136, 00000, "NETTCP: error during connection handshake" 
+원인 : 1.Client and Server 환경에서 간혹 SQL*NET으로 Server에 접속하려고 할 경우 
+2.Unix Server에서 $tcpctl stop 으로 orasrv의 Process를 정지시키려고 해도 아무런 반응 
+없이 Holding되는 경우가 발생 
+조치 : 1.TCPCTL Utility를 이용하여 다음의 Option을 부여하여 Start하는 방법. 
+$tcpctl start listen=30 timeout=30 forkon listen=<queue size>이며, 청취자 열의 
+크기를 지정. 
+timeout=<seconds>이며, 지정된 시간에 orasrv와의 응답 확인 시간을 나타냄. 
+forkon SQL*net이 orasrv process에 접근하는 방법을 나타냄. 
+System에 따라서 forkon option이 적용 않되는 경우도 있음. 
+2.Client에서 접속을 하여 사용 다가 비정상 종료(Session이 맺어진 상태에서 Client의 
+Power Off)를 하여 Server에 Processor가 남아 있고, orasrv를 통해 접속할 수 있는 
+Session의 수가 점점 줄어들 경우가 있는 데 이러한 경우에는 orasrv를(tcpctl stop or 
+UNIX kill command를 이용)강제로 종료 시고 다음과 같이 Start 시켜 주십시오. 
+
+#nohup tcpctl start ( Client의 비정상 종료가 Orasrv에는 영향을 미치지 않음) 
+또는 
+#orasrv (ORACLE_HOME\bin directory에서 직접 orasrv processor를 띄운다) 
+----- 
+현상 : ORA-06502 : PL/SQL : 값(수치) 오류입니다. 
+원인 : DB Column과 Host variableㅇ의 길이가 맞지 않은 경우. 
+조치 : DB Column과 Host variableㅇ의 길이를 확인하고 길이를 동일하게 한다. 
+----- 
+현상 : ORA-06533: Subscript beyond count 
+원인 : VARRAY는 default 로 3개의 element 이상을 가져 올수 없기 때문. 
+조치 : EXTEND method를 이용하여 해결할 수 있다. 
+----- 
+현상 : ORA-06571 
+원인 : SQL문 안에서 Stored function을 call하여 사용하는 경우 발생. 
+조치 : 기본적으로 stored function이나 procedure, package에서의 
+DML 문장의 사용은 보장이 되는 기능이나, sql list에서의 stored function의 
+사용은 몇 가지 제약 조건을 가지고 수행이 가능합니다. 
+----- 
+현상 : ORA-1119: error in creating database file 
+ORA-7515: sfccf UIC GROUP <= MAXSYSGROUP - file operations not allowed 
+원인 : VMS에서만 발생하는 에러로 DATAFILE을 생성하려는 Directory의 Owner가 DBA user가 아닐때 발생. 
+조치 : Datafile을 생성하려는 Directory의 Owner를 Oracle DBA user로 변경시켜 주어야 한다. 
+----- 
+현상 : ORA-9241, ORA-9301 
+원인 : 개발툴이 해당 툴 또는 SQL*NET에 필요한 메세지 화일을 찾을 수 없을 때 발생 
+조치 : ORACLE.INI 파일에 LOCAL = <V2 service name>을 추가한다. 만일 ORACLE.INI 파일에 LOCAL 
+파라미터를 추가한 후에도 계속 ora-9301 에러가 계속 발생한다면 autoexec.bat 파일에 SET 
+CONFIG = <PATH> \ORACLE.INI를 추가한다. 
+[주의 1]CONFIG가 ORACLE.INI를 지시하도록 설정하면 나중에 다시 설치할 문제가 발생할 수 
+있다. 그럴 때는 AUTOEXEC.BAT 에서 SET CONFIG 행을 삭제하고 다시 Booting 한후 
+설치를 시작한다. 
+[주의 2]MS ACCESS를 이용하여 ORACLE의 데이타를 질의할 경우는 환경변수를 다음과 같이 
+설정한다. 
+SET CONFIG_FILES = <path> \ORACLE.INI 
+[주의 3]SET 다음의 CONFIG 나 CONFIG_FILES 은 반드시 대문자 이어야 한다. 
+----- 
+현상 : ORA-9352 
+원인 : nt 에서 service 의 problem 발생. 
+조치 : 1.background services and processes 를 띄우기 
+dos>oradim80 -startup -sid SID -starttype srvc,inst -usrpwd password -pfile filename 
+2.여러 개의 instance 를 띄우고자 하는 경우 
+- ORACLE_SID 를 setting 한다. 
+c:\> set oracle_sid =sid 
+- server manager 실행 
+c:\>svrmgr30 
+svrmgr>connect internal/passwd 
+----- 
+현상 : ORA-12004/ORA-12034 
+원인 : master table의 snapshot log가 있는 table에 대해서, snapshot이 추가로 
+생성되고 나면 snapshot을 생성하기 시작한 시간과, 기존의 snapshot이 log를 
+refresh해간 시간을 비교하여 새로운 snapshot 생성시작 시간이 더 빠르면 
+ora-12004가 발생 
+조치 : 생성하고자 하는 snapshot에 대한 master table의 다른 snapshot들을 refresh하지 못하도록 하거나, refresh하지 않는 시간에 새로운 snapshot을 생성하여야 한다. 
+refresh 못하도록 막는 방법으로는 일시적으로 snapshot job을 broken시킨 후 snapshot이 생성된 후 다시 broken을 false로 하면 된다. 
+----- 
+현상 : ORA-12154 
+원인 : tnsnames.ora 파일의 Alias처럼 정의된 Connect String으로 사용하는 db_alias를 찾지 못할 경우 발생 
+----- 
+현상 : TNS-12203 "TNS:unable to connect to destination" 
+원인 : 1.WINDOWS용 TCP/IP 어댑터를 설치하지 않은 상태에서 연결하려 할 
+2.TNS-12203 에러는 WINDOWS용 ORACLE SQL*NET소프트웨어가 ORACLE 홈 디 렉토리를 찾을 수 
+없다는 의미일 수 있습니다. 
+3.TNSNAMES.ORA가 ORACLE 홈 디렉토리 아래의 NETWORK\ADMIN에 있는지 확인하십시요. 
+4.서버쪽에서 실행중인 SQL*NET V2 TCP/IP Listener가 없어도 TNS-12203이 발생 
+5.연결할 SERVICES 이름에 대해 CONNECT DESCRIPTOR에 정확한 ADDRESS 매개변수를 지정했는지 
+확인하십시요. 
+6.JSB VSL 소켓이 초기화되지 않으면 TNS-12203 이 발생할 수 있습니다. 
+7.TNS-12203에 이어 실제 문제가 무엇인지 더 자세하게 나타내 주는 또 다른 에러가 발생할 수 
+있습니다. 
+조치 : 1.SQL*NET TCP/IP V2는 SQL*NET V2와 V2 TCP/IP 어댑터 등 두가지 제품으로 구성됩니다. 
+이들은 별도의 두 키트로 되어 있는데, 반드시 두 키트를 모두 설치해야 합니다. 
+2.WIN.INI파일의 ORACLE 부분에 다음 항목이 있는지 확인하십시요. 
+[ORACLE] 
+ORA_CONFIG=C:\WINDOWS\ORACLE.INI 
+WINDOWS디렉토리가 C:\WINDOWS가 아니면, 위 행의 C:\WINDOWS 부분을 그 이름으로 바꾸십시요 
+그런 다음, ORACLE 소프트웨어를 다시 설치하십시요. ORACLE.INI 파일이 있으면 ORACLE.INI 
+파일에 다음 행이 있는지 확인하십시요. 
+ORACLE_HOME=C:\ORAWIN 
+ORACLE 홈 디렉토리가 C:\ORAWIN이 아니면 위 행의 C:\ORAWIN 부분을 이름으로 바꾸십시요. 
+3.ORACLE 홈 디렉토리는 ORACLE.INI(또는 WIN.INI의 ORA_CONFIG매개변수가 지시하는 파일)의 
+ORACLE_HOME 에 의해 정의됩니다. 
+4.서버쪽에서 실행중인 SQL*NET V2가 있는지 확인하십시요. 서버쪽에서 Listener Control 유틸 
+리티(LSNRCTL)를 사용하면 서버의 V2 Listener가 실행중인지 확인할 수 있습니다. 서버에서 
+"LSNRCTL STATUS"명령을 실행하십시요. Listener Control이 유틸리티 대해서는 SQL*NET 
+Administrator's Guide를 참조하십시요. 
+5.정확한 ADDRESS 매개변수를 사용중인지 확인하는 방법은, WINDOWS 클라이언트에서 사용 할 것 
+과 같은 ADDRESS 매개 변수를 가진 TNSNAMES.ORA를 사용하여 서버에서 루프백을 해 보는 것 
+입니다. 루프백을 수행한다는 것은 데이타베이스와 같은 기계에서 SQL*DBA 등을 호출하고 
+연결 스트링을 지정함으로써 SQL*NET V2를 통해 연결한다는 뜻입니다. 
+6.문제를 해결하려면 다음 사항을 점검하여 JSB VSL 레이어가 정확하게 초기화되었는지 확인 
+하십시요. 
+1)ORACLE.INI 파일(또는 WIN.INI의 ORA_CONFIG 매개변수가 지시하는 파일)의 업체키 매개 
+변수 TCP_VENDOR가 정확하게 설정되었는 지 확인하십시요 
+2)ORACLE_HOME\BIN 디렉토리에 MSOCKLIB.DLL이 있는지 확인하십시요. 
+3)ORACLE_HOME\BIN 디렉토리에 선택된 JSB 업체 특유의 DLL이 있는지, 또는그 JSB 업체 특유 
+의 TSR 파일이 실행되는 지 확인하십시요. 
+4)WINDOWS 홈 디렉토리에 VSL.INI 파일이 있는 지 확인하십시요. 
+7.화면에서 다른 에러가 보이지 않으면 ORACLE_HOME\NETWORK\LOG 디렉토리의 SQLNET.LOG 파일을 
+점검하십시요. 
+----- 
+현상 : TNS-12533 
+원인 : TNSNAMES.ORA에서 기술자의 ADDRESS 부분에 프로토콜 CONNECT DESCRIPTOR의 매개 변수가 틀릴 
+때 발생 
+조치 : 
+----- 
+현상 : ORA-12541: TNS:no listener 
+원인 : listener가 떠 있지 않은 경우에 발생. 
+조치 : 
+----- 
+현상 : TNS-12545 "TNS:name lookup failure 
+원인 : TNSNAMES.ORA에서 기술자의 ADDRESS 부분에 프로토콜 CONNECT DESCRIPTOR의 매개 변수가 틀릴 
+때 발생TCP/IP 프로토콜 어댑터를 가진 SQL*NET V2를 통해 툴에서 연결하려는 데 TCP/IP 
+프로토콜 어댑터가 TNSNAMES.ORA 파일의 ADDRESS 부분에 제공된 호스트 이름을 분석할 수 없을 
+때 발생 
+----- 
+현상 : ORA-01034: ORACLE not available 
+ORA-27101: shared memory realm does not exist 
+원인 : OPENINFO의 DB에 접속하는 계정이 존재하지 않은 경우. 
+조치 : DB에 접속하는 계정을 확인하여 OPENINFO의 DB 접속계정을 재설정 해야됨. 
+1.$ORACLE_HOME/bin directory의 "oracle"과 "orasrv" (orasrv가 없는 
+경우에는 "tnslsnr"을 확인해 보아야 한다.)의 permission과 ownership 
+을 check. 
+2.file system이 no set uid로 mount되어 있는지 확인. 
+3.oracle user의 "umask"를 확인. 
+4.$ORACLE_HOME/bin 에 존재하는 실행모듈의 ownership 을 확인. 
+5.모든 oracle file이 dba group으로 되어 있는지 확인. 
+6.ORACLE_HOME의 path에 존재하는 모든 directory가 755 mask로 setting 
+되어 있는지 확인. 
+----- 
+현상 : 0509-036,0509-022,0509-026,ORA-12547 
+원인 : 1.Oracle 계정이 아닌 일반 계정으로 unix에 접속하여 svrmgrl을 수행 시 발생. 
+2.$ORACLE_HOME/bin/oracle 실행 화일에 대한 permission이 적당하지 않을 수 있고, 
+unix 계정의 .profile 또는 .login 화일에 ORA_NLS33 파라미터를 셋팅하지 
+않았기 때문에 발생 
+조치 : 1.$ORACLE_HOME/bin/oracle 화일의 sticky bit가 제대로 셋팅되었는지 확인. 
+2.ORA_NLS33 파라미터가 제대로 셋팅되어 있는지 확인. 
+user가 오라클 database에 login할 때, oracle 실행 프로그램을 사용하여 
+오라클 계정으로 shadow process를 생성한다. 
+----- 
+현상 : ORA-24777: use of non-migratable database link not allowed. 
+원인 : Remote database를 사용하는데 Oracle이 dedicator server로 설치된 경우 발생(DB-Link사용할 경우) 
+조치 : Remote database를 사용하여 transaction를 보장 받을려면 Oracle을 MTS mode로 설치되어야 한다. 
+----- 
+현상 : ORA-29701(OGMS관련 ORACLE ERROR) 
+원인 : 1.오라클에서 GMS에 접속할 수 없을 경우 발생한다. 
+2.lmon( GMS client )이 communication file의 위치를 찾지 못할 경우 발생한다. 
+3.기타 발생 원인은 GMS에 틀린 internal function(skgxn)이 사용되거나 
+GMS가 local request에 대한 서비스를 할 수 없거나 CM subsystem에 문제가 있을 
+경우 등 
+조치 : 1.Oracle이 startup 될 때, GMS가 실행되지 않고 있을 때 발생한다. 이와 
+같은 경우에는 'ogmsctl status' 명령을 상용하여 GMS가 startup되었는지 확인 
+하여야 한다. 
+2.기본적으로 사용하는 디렉토리인 /tmp/.ogms를 사용하지 않을 경우 GMS home이 
+지정되어야 한다. OGMS home directory를 별도로 지정하	여 사용할 경우에는 
+init.ora 파라미터 파일에서 ogms_home 파라미터 값을 지정해 주어야 한다. 
+----- 
+현상 : ORA-29702 ERROR(OGMS관련 ORACLE ERROR) 
+원인 : 1.오라클에서 GMS에 접속할 수 없을 경우 발생한다. 
+2.lmon( GMS client )이 communication file의 위치를 찾지 못할 경우 발생한다. 
+3.기타 발생 원인은 GMS에 틀린 internal function(skgxn)이 사용되거나 
+GMS가 local request에 대한 서비스를 할 수 없거나 CM subsystem에 문제가 있을 
+경우 등 
+조치 : GMS 서비스에 예상치 못한 에러가 발생했을 경우 로그에 남게 된다. GMS가 실행 
+중인지를 확인해 보고, 내부 에러로 인해 GMS가 스스로 shutdown 되었다면 
+daemon file에 기록된 트레이스 정보를 살펴보아야 한다. 
+----- 

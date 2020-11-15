@@ -1,0 +1,5 @@
+flask
+pymongo
+bson
+requests
+dialogflow
