@@ -44,14 +44,24 @@ def detect_intent_texts(project_id, session_id, texts, language_code):
                 session=session, query_input=query_input)
 
     # print('=' * 20)
-    # print(response)
+    print(response)
     # print('Query text: {}'.format(response.query_result.query_text))
     # print('Detected intent: {} (confidence: {})\n'.format(
     #     response.query_result.intent.display_name,
     #     response.query_result.intent_detection_confidence))
+
+    res_msg = None
+
     fulfillment_text = response.query_result.fulfillment_text
     intent = response.query_result.intent.display_name
-    # print(response.query_result.parameters.fields['number'])
+    # if intent == '0000-chatIntent-custom':
+    #     print('11111')
+    #     res_msg = response.query_result.output_contexts.parameters.fields['number.original']
+    #     print(res_msg)
+    # else :
+    #     res_msg = fulfillment_text
+
+    # print(response.query_result.parameters.fields['number.original'])
     # print('Fulfillment text: {}\n'.format(fulfillment_text))
     return intent, fulfillment_text
 

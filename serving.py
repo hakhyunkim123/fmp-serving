@@ -24,23 +24,24 @@ def request_question():
         req_msg = req_data['msg']
         # proj-name, seesion-id, text, lang-code
         # dialogflow 호출
-        intent, res_code = df.detect_intent_texts('chatbot-proj-295114', '123456789', req_msg, 'ko-kr')
-        print(intent, res_code)
+        # intent, res_code = df.detect_intent_texts('chatbot-proj-295114', '123456789', req_msg, 'ko-kr')
+        intent, res_msg_df = df.detect_intent_texts('fmpchat-udbn', '123456789', req_msg, 'ko-kr')
+        print(intent, res_msg_df)
 
         ### res code가 5이하이면, 수정해주어야됨
         ### 10 -> 00010
-        if intent == 'oracle_error':
-            if len(res_code) < 5:
-                res_code = '0'*(5-len(res_code)) + res_code
-            error_code = 'ORA-' + res_code
+        if intent == '0000-chatIntent-custom':
+            if len(res_msg_df) < 5:
+                res_msg_df = '0'*(5-len(res_msg_df)) + res_msg_df
+            error_code = 'ORA-' + res_msg_df
 
             res_msg = oracle_errorzip[error_code].to_dict()
             
             # 로그, 사용내역 적재
             process_db.insert_hist(req_data['user-id'], error_code)
             return jsonify(res_msg)
-        else:
-            return '몰라..'
+        else :
+            return jsonify(res_msg_df)
 
 
 '''
