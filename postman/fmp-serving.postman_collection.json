@@ -1,0 +1,97 @@
+{
+	"info": {
+		"_postman_id": "82acbb2d-8eab-47ba-b5fe-9f86269abcf6",
+		"name": "fmp-serving",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "답변등록",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user-id\" : \"20100094\",\r\n    \"kind\" : \"oracle_error\",\r\n    \"error_code\" : \"ORA-99999\",\r\n    \"situation\" : \"테스트 현싱\",\r\n    \"cause\" : \"테스트 원인\",\r\n    \"solution\" : \"테스트 솔루션\"\r\n}"
+				},
+				"url": {
+					"raw": "20.41.82.195:8000/serving/add/answer",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"serving",
+						"add",
+						"answer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "질문요청",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user-id\" : \"20100094\",\r\n    \"msg\" : \"ORA-00934\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "20.41.82.195:8000/serving/req/question",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"serving",
+						"req",
+						"question"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "사용내역조회",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "20.41.82.195:8000/serving/userhist?user-id=20100094",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"serving",
+						"userhist"
+					],
+					"query": [
+						{
+							"key": "user-id",
+							"value": "20100094"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
