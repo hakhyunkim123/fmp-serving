@@ -3,7 +3,7 @@ from serving import serving_bp
 from flask_cors import CORS
 
 app = Flask(__name__)
-# CORS(app)
+CORS(app)
 app.register_blueprint(serving_bp)
 
 if __name__ == '__main__':
