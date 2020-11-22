@@ -105,12 +105,12 @@ def extract_errcode_list(text, errcode_map):
         last_idx = len(errcode)
         for idx, c in enumerate(errcode[4:]):
             if not (c >= '0' and c <= '9'):
-                last_idx = idx
+                last_idx = idx + 4
                 break
         errcode = errcode[:last_idx]
 
         if len(errcode) < 9:
-            errcode = errcode[:5] + '0' * (9 - len(errcode)) + errcode[5:9]
+            errcode = errcode[:4] + '0' * (9 - len(errcode)) + errcode[4:9]
 
         # 에러코드 한글설명 바인딩
         errcode_desc = ''

@@ -16,29 +16,38 @@ def insert_dataset(kind, dataset):
         collection = db.oracle_errorzip
         for data in dataset:
             insert_data = {
+                'register': 'admin',
                 'error_code': data[0],
                 'situation': data[1],
                 'description': data[2],
                 'cause': data[3],
-                'solution': data[4]
+                'solution': data[4],
+                'timestamp': datetime.utcnow()
             }
-            collection.insert_one(insert_data)
+
+            try:
+                collection.insert_one(insert_data)
+            except errors.DuplicateKeyError as dup_error:
+                print(insert_data['error_code'])
+                # return False
+
+            # collection.insert_one(insert_data)
 
     # 추가필요..
     return True
 
 
-def insert_error_data(kind, error_data):
+def insert_error_data(user_id, kind, error_data):
     if kind == 'oracle_error':
         collection = db.oracle_errorzip
-        # insert_data = {
-        #     'error_code': error_data['error_code'],
-        #     'situation': error_data['situation'],
-        #     'description': error_data['description'],
-        #     'cause': error_data['cause'],
-        #     'solution': error_data['solution']
-        # }
-        print(error_data)
+
+        # 해당 에러코드에 대한 데이터가 이미 있으면, False
+        error_data_db = list(collection.find({'error_code': error_data['error_code']}, {'_id': False}))
+        if len(error_data_db) > 0:
+            return False
+
+        error_data['register'] = user_id
+        error_data['timestamp'] = datetime.utcnow()
         collection.insert_one(error_data)
 
     return True
@@ -61,11 +70,11 @@ def insert_hist(user_id, error_code):
 
 def select_hist_by_id(user_id):
     collection = db.hist
-    doc = list(collection.find({'user-id':user_id}, {'_id': False}))
+    hist_list = list(collection.find({'user-id': user_id}, {'_id': False}))
 
-    hist_list = []
-    for hist in doc:
-        hist_list.append(hist['error-code'])
+    # hist_list = []
+    # for hist in doc:
+    #     hist_list.append(hist['error-code'])
 
     return hist_list
     # return {'user-id': user_id, 'hist-list': hist_list}
