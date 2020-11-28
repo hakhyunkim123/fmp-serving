@@ -55,22 +55,33 @@ def insert_error_data(user_id, kind, error_data):
 
 def insert_hist(user_id, error_code):
     collection = db.hist
-    data = {'user-id': user_id, 'error-code': error_code, 'timestamp': datetime.utcnow()}
-    try:
-        collection.insert_one(data)
-    except errors.DuplicateKeyError as dup_error:
-        print(dup_error)
-        return False
-    except errors.WriteError as write_error:
-        print(write_error)
-        return False
+    data = {'user-id': user_id, 'error-code': error_code}
+
+    hist = collection.find_one(data)
+    if hist is not None:
+        print('update:', hist['_id'])
+        collection.delete_one({'_id': hist['_id']})
+
+    data['timestamp'] = datetime.utcnow()
+    collection.insert_one(data)
 
     return True
+
+    # try:
+    #     collection.insert_one(data_with_date)
+    # except errors.DuplicateKeyError as dup_error:
+    #     update_data = {'$set': data_with_date}
+    #     print('update!')
+    #     collection.update_one(data, update_data)
+    #     return True
+    # except errors.WriteError as write_error:
+    #     print(write_error)
+    #     return False
 
 
 def select_hist_by_id(user_id):
     collection = db.hist
-    hist_list = list(collection.find({'user-id': user_id}, {'_id': False}))
+    hist_list = list(collection.find({'user-id': user_id}, {'_id': False}).sort('timestamp', -1))
 
     # hist_list = []
     # for hist in doc:
@@ -88,3 +99,17 @@ def load_dataset(kind):
 
     return None
     # return {'user-id': user_id, 'hist-list': hist_list}
+
+
+def select_user(user_id):
+    collection = db.user
+    user_dict = collection.find_one({'employ_num': user_id}, {'_id': False})
+
+    return user_dict
+
+
+def insert_user(user_data):
+    collection = db.user
+    collection.insert_one(user_data)
+
+    return True

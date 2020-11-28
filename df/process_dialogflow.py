@@ -44,7 +44,7 @@ def detect_intent_texts(project_id, session_id, texts, language_code):
                 session=session, query_input=query_input)
 
     # print('=' * 20)
-    print(response)
+    # print(response)
     # print('Query text: {}'.format(response.query_result.query_text))
     # print('Detected intent: {} (confidence: {})\n'.format(
     #     response.query_result.intent.display_name,

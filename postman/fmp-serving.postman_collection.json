@@ -91,6 +91,117 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "질문요청(에러유형)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user-id\" : \"20100094\",\r\n    \"msg\" : \"ORACLE\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "20.41.82.195:8000/serving/req/question",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"serving",
+						"req",
+						"question"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "회원가입",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"employ_num\": \"20100094\",\r\n    \"name\": \"김학현\",\r\n    \"email\": \"hhkim94@shinhan.com\",\r\n    \"position\": \"선임\",\r\n    \"comp_division\": \"AICC\",\r\n    \"comp_division_detail\": \"플랫폼 셀\",\r\n    \"pwd\": \"1234\"\r\n}"
+				},
+				"url": {
+					"raw": "20.41.82.195:8000/account/register",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"account",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "로그인",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user-id\": \"20100094\",\r\n    \"password\": \"1234\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "20.41.82.195:8000/account/login",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"account",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "로그아웃",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "20.41.82.195:8000/account/logout",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"account",
+						"logout"
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"protocolProfileBehavior": {}
