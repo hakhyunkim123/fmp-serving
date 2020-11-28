@@ -202,6 +202,34 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "사용자 조회",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "20.41.82.195:8000/account/userinfo?user-id=20100094",
+					"host": [
+						"20",
+						"41",
+						"82",
+						"195"
+					],
+					"port": "8000",
+					"path": [
+						"account",
+						"userinfo"
+					],
+					"query": [
+						{
+							"key": "user-id",
+							"value": "20100094"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"protocolProfileBehavior": {}
